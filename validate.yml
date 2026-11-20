@@ -1,0 +1,47 @@
+name: validate-design
+on:
+  push:
+  pull_request:
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validasi rencana IP/VLSM
+        run: python scripts/netplan.py
+      - name: Model kapasitas
+        run: python scripts/sizing.py
+      - name: Unit test
+        run: python -m unittest discover -s tests -v
+  sql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skema dan partisi
+        run: |
+          psql -v ON_ERROR_STOP=1 -f sql/01_schema.sql
+          psql -v ON_ERROR_STOP=1 -f sql/02_partition_maintenance.sql
+      - name: Data demo kecil (200 perangkat x 3 hari)
+        run: psql -v ON_ERROR_STOP=1 -v n_devices=200 -v days=3 -f sql/03_seed_demo_data.sql
+      - name: Kueri analitik benar vs salah
+        run: psql -v ON_ERROR_STOP=1 -f sql/04_analytics_and_explain.sql
+      - name: Kompaksi indeks dan retensi
+        run: |
+          psql -v ON_ERROR_STOP=1 -v day_offset=1 -f sql/07_close_day_compaction.sql
+          psql -v ON_ERROR_STOP=1 -v keep_days=2 -f sql/05_retention_detach.sql

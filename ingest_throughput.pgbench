@@ -1,0 +1,7 @@
+-- Beban ingest realistis: batch 1.000 baris unik per transaksi, terurut (device_id, recorded_at)
+\set base random(0, 1000000)
+INSERT INTO sensor_logs (recorded_at, device_id, metric_value, battery_pct, quality)
+SELECT clock_timestamp() + (g * interval '1 microsecond'), 1 + ((:client_id * 211 + g * 7) % 2000), 20 + random() * 10, 80, 0
+FROM generate_series(1, 1000) g
+ORDER BY 2, 1
+ON CONFLICT DO NOTHING;

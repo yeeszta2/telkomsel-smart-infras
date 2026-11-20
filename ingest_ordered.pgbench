@@ -1,0 +1,4 @@
+-- 50 kunci (device_id, detik-ini) yang SAMA diperebutkan semua klien, disisipkan TERURUT (urutan penguncian konsisten)
+INSERT INTO sensor_logs (recorded_at, device_id, metric_value, quality)
+SELECT date_trunc('second', now()), g, 25.0, 0 FROM generate_series(1, 50) g ORDER BY g
+ON CONFLICT DO NOTHING;

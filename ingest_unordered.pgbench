@@ -1,0 +1,4 @@
+-- 50 kunci yang SAMA, tetapi disisipkan dalam urutan ACAK (urutan penguncian berbeda antar klien)
+INSERT INTO sensor_logs (recorded_at, device_id, metric_value, quality)
+SELECT date_trunc('second', now()), g, 25.0, 0 FROM generate_series(1, 50) g ORDER BY random()
+ON CONFLICT DO NOTHING;
